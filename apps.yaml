@@ -1,0 +1,82 @@
+version: "3.8"
+
+services:
+  pihole:
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+#      - "67:67/udp"
+      - "80:80/tcp"
+      - "443:443/tcp"
+    environment:
+      TZ: 'Europe/Madrid'
+    volumes:
+      - etc-pihole:/etc/pihole/
+      - dnsmasq-pihole:/etc/dnsmasq.d/
+
+
+  duckdns:
+    image: linuxserver/duckdns
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Europe/Madrid
+      - FILE__SUBDOMAINS=/run/secrets/duckdns_hostnames
+      - FILE__TOKEN=/run/secrets/duckdns_token
+      - LOG_FILE=true
+    volumes:
+      - duckdns_config:/config
+    secrets:
+      - duckdns_hostnames
+      - duckdns_token
+
+
+  plex:
+    image: linuxserver/plex
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - VERSION=docker
+    volumes:
+      - plex_config:/config
+      - '/mnt/pidrive/torrents:/torrents'
+      - '/mnt/gonzo:/gonzo'
+#      - '/media:/gest_music'
+    networks:
+      host: {}
+
+
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Europe/Madrid
+      - UMASK_SET=000
+      - WEBUI_PORT=7999
+    volumes:
+      - qbit_config:/config
+      - /mnt/pidrive/torrents:/downloads
+    ports:
+      - 6881:6881
+      - 6881:6881/udp
+      - 7999:7999
+
+secrets:
+  duckdns_hostnames:
+    file: secrets/duckdns_hostnames
+  duckdns_token:
+    file: secrets/duckdns_token
+
+
+volumes:
+  etc-pihole:
+  dnsmasq-pihole:
+  duckdns_config:
+  plex_config:
+  qbit_config:
+
+networks:
+  host:
+    external: true
